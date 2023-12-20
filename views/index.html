@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>To-Do List</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+      }
+      .todo-list {
+        list-style-type: none;
+        padding: 0;
+      }
+      .todo-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .todo-item input[type="checkbox"] {
+        margin-right: 10px;
+      }
+      .todo-item .delete-btn {
+        margin-left: auto;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>To-Do List</h1>
+      <form id="addForm">
+        <input type="text" id="taskInput" placeholder="Add a task" />
+        <button type="submit">Add</button>
+      </form>
+      <ul class="todo-list" id="todoList">
+        <!-- List items will be dynamically added here -->
+      </ul>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        // Show initial list items
+        showList();
+
+        // Add new list item
+        $("#addForm").submit(function (e) {
+          e.preventDefault();
+          var task = $("#taskInput").val();
+          if (task.trim() !== "") {
+            // ajax json post to api/todos/add
+            $.ajax({
+              url: "/api/todos/add",
+              method: "POST",
+              dataType: "json", // Corrected spelling
+              contentType: "application/json", // Set content type to JSON
+              data: JSON.stringify({
+                title: task,
+              }),
+              success: function (response) {
+                // Check if the response is successful (adjust the condition based on your server response)
+                if (response && response.status === 201) {
+                  // Assuming showList and other functions are defined elsewhere
+                  showList();
+                  $("#taskInput").val("");
+                } else {
+                  console.error("Unexpected response:", response);
+                  // Handle unexpected response
+                }
+              },
+              error: function (xhr, status, error) {
+                console.error("Error:", error);
+                // Handle error
+              },
+            });
+          }
+        });
+
+        // Delete list item
+        $(document).on("click", ".delete-btn", function () {
+          var itemId = $(this).data("id");
+          $.ajax({
+            url: "/api/todos/delete?id=" + itemId,
+            method: "DELETE",
+            success: function (response) {
+              showList();
+            },
+          });
+        });
+
+        // Function to show list items
+        function showList() {
+          $.ajax({
+            url: "/api/todos",
+            method: "GET",
+            success: function (response) {
+              var todoList = $("#todoList");
+              todoList.empty();
+              console.log(response.data);
+              if (response.data == null) {
+                todoList.append("<li>No tasks found</li>");
+              } else {
+                response.data.forEach(function (item) {
+                  var listItem = $('<li class="todo-item"></li>');
+                  var checkbox = $('<input type="checkbox">');
+                  var task = $("<span></span>").text(item.title);
+                  var deleteBtn = $(
+                    '<span class="delete-btn">Delete</span>'
+                  ).data("id", item.id);
+                  listItem.append(checkbox, task, deleteBtn);
+                  todoList.append(listItem);
+                });
+              }
+            },
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
